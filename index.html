@@ -161,7 +161,7 @@
         position: relative;
         width: var(--column-width);
         min-width: var(--column-width);
-        height: 74px;
+        height: auto;
         min-height: 74px;
         padding: 0;
         border-right: 1px solid #1f2a22;
@@ -209,7 +209,7 @@
       .argument-table textarea {
         display: block;
         width: 100%;
-        height: 100%;
+        height: auto;
         min-height: 72px;
         padding: 8px;
         border: 0;
@@ -217,6 +217,7 @@
         background: transparent;
         color: #07110b;
         line-height: 1.45;
+        overflow: hidden;
         resize: none;
       }
 
@@ -765,6 +766,16 @@
         table.style.setProperty("--column-width", `${columnWidth}px`);
         table.style.width = `${tableWidth}px`;
         table.style.minWidth = shrinkColumns ? "0" : "100%";
+        requestAnimationFrame(fitAllTextareas);
+      }
+
+      function fitTextarea(textarea) {
+        textarea.style.height = "auto";
+        textarea.style.height = `${textarea.scrollHeight + 2}px`;
+      }
+
+      function fitAllTextareas() {
+        document.querySelectorAll(".argument-table textarea").forEach(fitTextarea);
       }
 
       function render() {
@@ -822,6 +833,7 @@
             });
             textarea.addEventListener("input", (event) => {
               node.text = event.target.value;
+              fitTextarea(event.target);
               saveBoard();
             });
 
@@ -832,6 +844,7 @@
         });
 
         updateSelectionChrome();
+        requestAnimationFrame(fitAllTextareas);
       }
 
       topicInput.addEventListener("input", (event) => {
