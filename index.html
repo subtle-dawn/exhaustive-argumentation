@@ -1,0 +1,883 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>網羅的議論法</title>
+    <style>
+      :root {
+        color: #18201d;
+        background: #f4f1e8;
+        font-family: "Segoe UI", "Yu Gothic UI", Meiryo, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 320px;
+      }
+
+      button,
+      input,
+      textarea {
+        font: inherit;
+      }
+
+      button {
+        min-height: 36px;
+        padding: 0 14px;
+        border: 1px solid #9da89d;
+        border-radius: 6px;
+        background: #fff;
+        color: #243029;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: #eef7ec;
+        border-color: #5e8b5a;
+      }
+
+      .danger-button {
+        border-color: #a72020;
+        background: #d73333;
+        color: #fff;
+      }
+
+      .danger-button:hover {
+        border-color: #861717;
+        background: #b92525;
+      }
+
+      .app-shell {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        height: 100vh;
+        padding: 12px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        width: 100%;
+        margin: 0 0 14px;
+      }
+
+      h1 {
+        margin: 0;
+        color: #14211a;
+        font-size: 28px;
+        line-height: 1.2;
+      }
+
+      .toolbar {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .switch-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-height: 36px;
+        color: #243029;
+        font-size: 14px;
+        white-space: nowrap;
+      }
+
+      .switch-label input {
+        width: 18px;
+        height: 18px;
+        margin: 0;
+      }
+
+      .topic-row {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        margin: 0 0 12px;
+      }
+
+      .topic-row label {
+        font-weight: 700;
+      }
+
+      .topic-row input {
+        width: 100%;
+        min-height: 42px;
+        padding: 0 12px;
+        border: 1px solid #aab4aa;
+        border-radius: 6px;
+        background: #fff;
+      }
+
+      .sheet-wrap {
+        flex: 1;
+        width: 100%;
+        min-height: 0;
+        margin: 0;
+        overflow: auto;
+        border: 1px solid #9da89d;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 18px 50px rgba(40, 48, 41, 0.12);
+      }
+
+      .argument-table {
+        --column-width: 200px;
+        width: max-content;
+        min-width: 100%;
+        table-layout: fixed;
+        border-collapse: separate;
+        border-spacing: 0;
+      }
+
+      .argument-table th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        height: 34px;
+        padding: 0 8px;
+        border-right: 1px solid #7f8d80;
+        border-bottom: 1px solid #7f8d80;
+        background: #edf0ea;
+        color: #213027;
+        font-size: 14px;
+        font-weight: 700;
+        text-align: left;
+      }
+
+      .argument-table td {
+        position: relative;
+        width: var(--column-width);
+        min-width: var(--column-width);
+        height: 74px;
+        min-height: 74px;
+        padding: 0;
+        border-right: 1px solid #1f2a22;
+        border-bottom: 1px solid #1f2a22;
+        vertical-align: top;
+      }
+
+      .argument-table th:first-child,
+      .argument-table td:first-child {
+        border-left: 1px solid #7f8d80;
+      }
+
+      .argument-table th {
+        width: var(--column-width);
+        min-width: var(--column-width);
+      }
+
+      .opinion-cell {
+        background: #d9f0cf;
+      }
+
+      .rebuttal-cell {
+        background: #ffd0d3;
+      }
+
+      .empty-cell {
+        background: #fff;
+        border-bottom-color: transparent;
+      }
+
+      .rebuttal-cell.depth-even {
+        background: #dbf3d2;
+      }
+
+      .argument-table td.selected {
+        z-index: 7;
+        box-shadow: inset 0 0 0 3px #2678c9;
+      }
+
+      .argument-table td.path-highlight {
+        outline: 3px solid rgba(38, 120, 201, 0.5);
+        outline-offset: -3px;
+      }
+
+      .argument-table textarea {
+        display: block;
+        width: 100%;
+        height: 100%;
+        min-height: 72px;
+        padding: 8px;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: #07110b;
+        line-height: 1.45;
+        resize: none;
+      }
+
+      .cell-actions {
+        position: absolute;
+        inset: 0;
+        z-index: 8;
+        pointer-events: none;
+      }
+
+      .cell-actions button {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 26px;
+        height: 26px;
+        min-height: 26px;
+        padding: 0;
+        border-radius: 50%;
+        font-size: 16px;
+        line-height: 1;
+        pointer-events: auto;
+      }
+
+      .add-child-button {
+        top: 50%;
+        right: -14px;
+        z-index: 9;
+        transform: translateY(-50%);
+      }
+
+      .add-sibling-button {
+        bottom: -14px;
+        left: 50%;
+        z-index: 9;
+        transform: translateX(-50%);
+      }
+
+      .delete-node-button {
+        top: -14px;
+        left: 50%;
+        z-index: 10;
+        transform: translateX(-50%);
+        border-color: #a72020;
+        background: #d73333;
+        color: #fff;
+        font-size: 14px;
+      }
+
+      .delete-node-button:hover {
+        background: #b92525;
+        border-color: #861717;
+      }
+
+      .file-input {
+        display: none;
+      }
+
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 20;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: rgba(18, 24, 20, 0.46);
+      }
+
+      .modal-backdrop.open {
+        display: flex;
+      }
+
+      .modal {
+        width: min(420px, 100%);
+        padding: 22px;
+        border: 1px solid #8d9690;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 24px 80px rgba(22, 30, 24, 0.28);
+      }
+
+      .help-modal {
+        width: min(760px, 100%);
+        max-height: min(760px, 86vh);
+        padding: 0;
+        overflow: auto;
+      }
+
+      .modal-header {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        min-height: 52px;
+        padding: 10px 54px 10px 18px;
+        border-bottom: 1px solid #d6ddd5;
+        background: #fff;
+      }
+
+      .modal-title {
+        margin: 0;
+        color: #14211a;
+        font-size: 18px;
+        font-weight: 700;
+      }
+
+      .modal-close-button {
+        position: absolute;
+        right: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        min-height: 32px;
+        padding: 0;
+        border-radius: 50%;
+        font-size: 20px;
+        line-height: 1;
+      }
+
+      .help-body {
+        padding: 22px;
+      }
+
+      .modal p {
+        margin: 0 0 18px;
+        color: #17231c;
+        font-size: 17px;
+        line-height: 1.6;
+      }
+
+      .help-modal h2,
+      .help-modal h3 {
+        margin: 0 0 12px;
+        color: #14211a;
+        line-height: 1.35;
+      }
+
+      .help-modal h2 {
+        font-size: 22px;
+      }
+
+      .help-modal h3 {
+        margin-top: 24px;
+        font-size: 18px;
+      }
+
+      .help-modal p {
+        margin-bottom: 12px;
+        font-size: 15px;
+      }
+
+      .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      @media (max-width: 760px) {
+        .app-shell {
+          padding: 10px;
+        }
+
+        .topbar {
+          align-items: stretch;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        h1 {
+          font-size: 22px;
+        }
+
+        .topic-row {
+          grid-template-columns: 1fr;
+          gap: 6px;
+        }
+
+        .sheet-wrap {
+          min-height: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <h1>網羅的議論法</h1>
+        <div class="toolbar" aria-label="ファイル操作">
+          <label class="switch-label">
+            <input id="shrinkColumns" type="checkbox" />
+            意見の幅を縮める
+          </label>
+          <button type="button" id="openHelp">ヘルプ</button>
+          <button type="button" id="importJson">インポート</button>
+          <button type="button" id="exportJson">エクスポート</button>
+          <button type="button" id="resetBoard" class="danger-button">初期化</button>
+          <input id="fileInput" class="file-input" type="file" accept="application/json,.json" />
+        </div>
+      </header>
+
+      <section class="topic-row">
+        <label for="topicInput">議題</label>
+        <input id="topicInput" type="text" autocomplete="off" />
+      </section>
+
+      <section class="sheet-wrap" aria-label="網羅的議論表">
+        <table class="argument-table">
+          <thead id="tableHead"></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </section>
+    </main>
+
+    <div id="resetModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="resetMessage">
+      <div class="modal">
+        <p id="resetMessage">データをすべて消してよろしいですか？</p>
+        <div class="modal-actions">
+          <button type="button" id="cancelReset">いいえ</button>
+          <button type="button" id="confirmReset" class="danger-button">はい</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="deleteModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="deleteMessage">
+      <div class="modal">
+        <p id="deleteMessage">意見を削除してよろしいですか？</p>
+        <div class="modal-actions">
+          <button type="button" id="cancelDelete">いいえ</button>
+          <button type="button" id="confirmDelete" class="danger-button">はい</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="helpModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+      <div class="modal help-modal">
+        <div class="modal-header">
+          <div class="modal-title">ヘルプ</div>
+          <button type="button" id="closeHelp" class="modal-close-button" aria-label="閉じる">×</button>
+        </div>
+        <div class="help-body">
+          <h2 id="helpTitle">網羅的議論法とは</h2>
+          <p>網羅的議論法は、<strong>議題に対して出されたすべての意見を、参加者全員で反論がなくなるまで検討する議論方法</strong>です。</p>
+          <p>特定の意見を言い負かすことではなく、さまざまな立場から意見を検討し、<strong>参加者全員が納得できる案を見つけること</strong>を目的とします。</p>
+
+          <h3>進め方</h3>
+          <p><strong>① 意見を出す</strong><br>まず、議題について考えられる意見を自由に出します。<br>この段階では、他の意見への反論は行いません。</p>
+          <p><strong>② 1巡目：意見に反論する</strong><br>参加者全員が、出された<strong>すべての意見</strong>について反論を考えます。<br>反論が複数ある場合は、すべて追加します。</p>
+          <p><strong>③ 2巡目：反論に反論する</strong><br>1巡目で出された<strong>すべての反論</strong>について、再び参加者全員で反論を考えます。</p>
+          <p><strong>④ 反論がなくなるまで繰り返す</strong><br>3巡目、4巡目……と、直前の巡で出されたすべての意見について同じことを繰り返します。<br>参加者全員が「これ以上反論はない」と判断した枝は、そこで終了します。</p>
+
+          <h3>色について</h3>
+          <p>🟩 <strong>緑：元の意見を支持する側</strong><br>最初の意見と、偶数巡目の意見です。</p>
+          <p>🟥 <strong>赤：元の意見に反対する側</strong><br>奇数巡目の意見です。</p>
+          <p>反論を重ねるたびに立場が反転するため、緑と赤が交互になります。</p>
+
+          <h3>結果の見方</h3>
+          <p>ある意見から伸びたすべての枝が終了したら、その意見についての検討は完了です。</p>
+          <p><strong>すべての枝が緑で終わった場合、その意見に対して出された反論はすべて解消されたことになります。</strong><br>参加者全員がその内容に納得できるなら、議論の成果物として採用できます。</p>
+          <p>なお、反論が思いつかないことは、その意見が客観的に正しいことを保証するものではありません。必要に応じて資料調査やアンケートなども併用してください。</p>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const STORAGE_KEY = "exhaustive-argumentation-board";
+      const SHRINK_COLUMNS_KEY = "exhaustive-argumentation-shrink-columns";
+      const uid = () => crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+      const makeNode = (text = "") => ({ id: uid(), text, children: [] });
+
+      let selectedId = null;
+      let shrinkColumns = localStorage.getItem(SHRINK_COLUMNS_KEY) === "true";
+      const topicInput = document.getElementById("topicInput");
+      const tableHead = document.getElementById("tableHead");
+      const tableBody = document.getElementById("tableBody");
+      const fileInput = document.getElementById("fileInput");
+      const shrinkColumnsInput = document.getElementById("shrinkColumns");
+      const helpModal = document.getElementById("helpModal");
+      const closeHelp = document.getElementById("closeHelp");
+      const resetModal = document.getElementById("resetModal");
+      const cancelReset = document.getElementById("cancelReset");
+      const confirmReset = document.getElementById("confirmReset");
+      const deleteModal = document.getElementById("deleteModal");
+      const cancelDelete = document.getElementById("cancelDelete");
+      const confirmDelete = document.getElementById("confirmDelete");
+      let pendingDeleteId = null;
+
+      function blankBoard() {
+        return {
+          topic: "",
+          roots: [makeNode("")],
+          updatedAt: new Date().toISOString()
+        };
+      }
+
+      function loadBoard() {
+        const cached = localStorage.getItem(STORAGE_KEY);
+        if (!cached) return blankBoard();
+
+        try {
+          const parsed = JSON.parse(cached);
+          if (!parsed || !Array.isArray(parsed.roots)) return blankBoard();
+          return {
+            topic: parsed.topic || parsed.title || "",
+            roots: parsed.roots.length ? parsed.roots : [makeNode("")],
+            updatedAt: parsed.updatedAt || new Date().toISOString()
+          };
+        } catch {
+          return blankBoard();
+        }
+      }
+
+      let board = loadBoard();
+
+      function saveBoard() {
+        board.updatedAt = new Date().toISOString();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(board));
+      }
+
+      function findNode(nodes, id, parent = null) {
+        for (const node of nodes) {
+          if (node.id === id) return { node, parent, siblings: nodes };
+          const found = findNode(node.children, id, node);
+          if (found) return found;
+        }
+        return null;
+      }
+
+      function findPath(nodes, id, path = []) {
+        for (const node of nodes) {
+          const nextPath = [...path, node];
+          if (node.id === id) return nextPath;
+          const found = findPath(node.children, id, nextPath);
+          if (found) return found;
+        }
+        return null;
+      }
+
+      function leafPaths(roots) {
+        const paths = [];
+        const visit = (node, path) => {
+          const nextPath = [...path, node];
+          if (node.children.length === 0) {
+            paths.push(nextPath);
+            return;
+          }
+          node.children.forEach((child) => visit(child, nextPath));
+        };
+        roots.forEach((root) => visit(root, []));
+        return paths;
+      }
+
+      function rowSpanAt(rows, rowIndex, depth) {
+        const node = rows[rowIndex] && rows[rowIndex][depth];
+        if (!node) return 0;
+        if (rowIndex > 0 && rows[rowIndex - 1][depth]?.id === node.id) return 0;
+
+        let count = 1;
+        for (let i = rowIndex + 1; i < rows.length; i += 1) {
+          if (rows[i][depth]?.id !== node.id) break;
+          count += 1;
+        }
+        return count;
+      }
+
+      function download(filename, content, type) {
+        const blob = new Blob([content], { type });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = filename;
+        anchor.click();
+        URL.revokeObjectURL(url);
+      }
+
+      function addChild(id) {
+        const found = findNode(board.roots, id);
+        if (!found) return;
+        const child = makeNode("");
+        found.node.children.push(child);
+        selectedId = child.id;
+        saveBoard();
+        render();
+      }
+
+      function addSibling(id) {
+        const found = findNode(board.roots, id);
+        if (!found) return;
+        const sibling = makeNode("");
+        const index = found.siblings.findIndex((node) => node.id === id);
+        found.siblings.splice(index + 1, 0, sibling);
+        selectedId = sibling.id;
+        saveBoard();
+        render();
+      }
+
+      function removeNode(id) {
+        const found = findNode(board.roots, id);
+        if (!found) return;
+
+        if (!found.parent && board.roots.length === 1) {
+          found.node.text = "";
+          found.node.children = [];
+        } else {
+          const index = found.siblings.findIndex((node) => node.id === id);
+          found.siblings.splice(index, 1);
+        }
+
+        selectedId = null;
+        saveBoard();
+        render();
+      }
+
+      function requestRemoveNode(id) {
+        pendingDeleteId = id;
+        deleteModal.classList.add("open");
+        cancelDelete.focus();
+      }
+
+      function exportJson() {
+        const filename = board.topic ? `${board.topic}.json` : "mourateki-giron.json";
+        download(filename, JSON.stringify(board, null, 2), "application/json;charset=utf-8");
+      }
+
+      function importJson(file) {
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const parsed = JSON.parse(String(reader.result));
+            if (!parsed || !Array.isArray(parsed.roots)) throw new Error("invalid");
+            board = {
+              topic: parsed.topic || parsed.title || "",
+              roots: parsed.roots.length ? parsed.roots : [makeNode("")],
+              updatedAt: parsed.updatedAt || new Date().toISOString()
+            };
+            selectedId = null;
+            saveBoard();
+            render();
+          } catch {
+            alert("JSONを読み込めませんでした。");
+          }
+        };
+        reader.readAsText(file);
+        fileInput.value = "";
+      }
+
+      function openResetModal() {
+        resetModal.classList.add("open");
+        cancelReset.focus();
+      }
+
+      function closeResetModal() {
+        resetModal.classList.remove("open");
+      }
+
+      function closeDeleteModal() {
+        deleteModal.classList.remove("open");
+        pendingDeleteId = null;
+      }
+
+      function openHelpModal() {
+        helpModal.classList.add("open");
+        closeHelp.focus();
+      }
+
+      function closeHelpModal() {
+        helpModal.classList.remove("open");
+      }
+
+      function resetBoard() {
+        board = blankBoard();
+        selectedId = null;
+        saveBoard();
+        closeResetModal();
+        render();
+      }
+
+      function appendCellActions(td, node) {
+        const actions = document.createElement("div");
+        actions.className = "cell-actions";
+
+        const childButton = document.createElement("button");
+        childButton.type = "button";
+        childButton.className = "add-child-button";
+        childButton.title = "反論を追加";
+        childButton.textContent = "+";
+        childButton.addEventListener("click", (event) => {
+          event.stopPropagation();
+          addChild(node.id);
+        });
+
+        const siblingButton = document.createElement("button");
+        siblingButton.type = "button";
+        siblingButton.className = "add-sibling-button";
+        siblingButton.title = "同列に追加";
+        siblingButton.textContent = "+";
+        siblingButton.addEventListener("click", (event) => {
+          event.stopPropagation();
+          addSibling(node.id);
+        });
+
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "delete-node-button";
+        deleteButton.title = "削除";
+        deleteButton.textContent = "🗑";
+        deleteButton.addEventListener("click", (event) => {
+          event.stopPropagation();
+          requestRemoveNode(node.id);
+        });
+
+        actions.append(childButton, siblingButton, deleteButton);
+        td.appendChild(actions);
+      }
+
+      function updateSelectionChrome() {
+        const selectedPathIds = new Set((findPath(board.roots, selectedId) || []).map((node) => node.id));
+        document.querySelectorAll(".argument-table td[data-node-id]").forEach((td) => {
+          const nodeId = td.dataset.nodeId;
+          td.classList.toggle("path-highlight", selectedPathIds.has(nodeId));
+          td.classList.toggle("selected", selectedId === nodeId);
+          td.querySelector(".cell-actions")?.remove();
+
+          if (selectedId === nodeId) {
+            const found = findNode(board.roots, nodeId);
+            if (found) appendCellActions(td, found.node);
+          }
+        });
+      }
+
+      function applyColumnSizing(maxDepth) {
+        const table = document.querySelector(".argument-table");
+        const sheetWrap = document.querySelector(".sheet-wrap");
+        const columnWidth = shrinkColumns
+          ? Math.max(1, Math.floor(sheetWrap.clientWidth / maxDepth))
+          : 200;
+        const tableWidth = columnWidth * maxDepth;
+
+        table.style.setProperty("--column-width", `${columnWidth}px`);
+        table.style.width = `${tableWidth}px`;
+        table.style.minWidth = shrinkColumns ? "0" : "100%";
+      }
+
+      function render() {
+        const rows = leafPaths(board.roots);
+        const maxDepth = Math.max(1, ...rows.map((row) => row.length));
+        applyColumnSizing(maxDepth);
+        shrinkColumnsInput.checked = shrinkColumns;
+
+        topicInput.value = board.topic;
+        tableHead.innerHTML = "";
+        tableBody.innerHTML = "";
+
+        const headRow = document.createElement("tr");
+        Array.from({ length: maxDepth }, (_, index) => {
+          const th = document.createElement("th");
+          th.textContent = index === 0 ? "意見" : `${index}巡目`;
+          headRow.appendChild(th);
+        });
+        tableHead.appendChild(headRow);
+
+        rows.forEach((row, rowIndex) => {
+          const tr = document.createElement("tr");
+          Array.from({ length: maxDepth }, (_, depth) => {
+            const span = rowSpanAt(rows, rowIndex, depth);
+            const node = row[depth];
+            if (span === 0 && node) return;
+
+            if (!node) {
+              const emptyTd = document.createElement("td");
+              emptyTd.className = "empty-cell";
+              tr.appendChild(emptyTd);
+              return;
+            }
+
+            const td = document.createElement("td");
+            td.rowSpan = span;
+            td.dataset.nodeId = node.id;
+            td.className = `${depth === 0 ? "opinion-cell" : "rebuttal-cell"} ${depth % 2 === 0 ? "depth-even" : ""}`;
+            td.addEventListener("click", () => {
+              selectedId = node.id;
+              updateSelectionChrome();
+            });
+
+            const textarea = document.createElement("textarea");
+            textarea.value = node.text;
+            textarea.setAttribute("aria-label", depth === 0 ? "意見" : `${depth}巡目`);
+            textarea.addEventListener("click", (event) => {
+              event.stopPropagation();
+              selectedId = node.id;
+              updateSelectionChrome();
+            });
+            textarea.addEventListener("focus", () => {
+              selectedId = node.id;
+              updateSelectionChrome();
+            });
+            textarea.addEventListener("input", (event) => {
+              node.text = event.target.value;
+              saveBoard();
+            });
+
+            td.appendChild(textarea);
+            tr.appendChild(td);
+          });
+          tableBody.appendChild(tr);
+        });
+
+        updateSelectionChrome();
+      }
+
+      topicInput.addEventListener("input", (event) => {
+        board.topic = event.target.value;
+        saveBoard();
+      });
+
+      document.getElementById("openHelp").addEventListener("click", openHelpModal);
+      closeHelp.addEventListener("click", closeHelpModal);
+      helpModal.addEventListener("click", (event) => {
+        if (event.target === helpModal) closeHelpModal();
+      });
+      document.getElementById("importJson").addEventListener("click", () => fileInput.click());
+      document.getElementById("exportJson").addEventListener("click", exportJson);
+      shrinkColumnsInput.addEventListener("change", (event) => {
+        shrinkColumns = event.target.checked;
+        localStorage.setItem(SHRINK_COLUMNS_KEY, String(shrinkColumns));
+        render();
+      });
+      document.getElementById("resetBoard").addEventListener("click", openResetModal);
+      cancelReset.addEventListener("click", closeResetModal);
+      confirmReset.addEventListener("click", resetBoard);
+      resetModal.addEventListener("click", (event) => {
+        if (event.target === resetModal) closeResetModal();
+      });
+      cancelDelete.addEventListener("click", closeDeleteModal);
+      confirmDelete.addEventListener("click", () => {
+        if (pendingDeleteId) removeNode(pendingDeleteId);
+        closeDeleteModal();
+      });
+      deleteModal.addEventListener("click", (event) => {
+        if (event.target === deleteModal) closeDeleteModal();
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          closeHelpModal();
+          closeResetModal();
+          closeDeleteModal();
+        }
+      });
+      fileInput.addEventListener("change", (event) => importJson(event.target.files[0]));
+      window.addEventListener("resize", () => {
+        if (shrinkColumns) render();
+      });
+
+      render();
+    </script>
+  </body>
+</html>
