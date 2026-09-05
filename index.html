@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>網羅的議論法</title>
+    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <meta name="theme-color" content="#f4f1e8" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <style>
       :root {
         color: #18201d;
@@ -70,10 +76,19 @@
       }
 
       h1 {
+        display: flex;
+        align-items: center;
+        gap: 10px;
         margin: 0;
         color: #14211a;
         font-size: 28px;
         line-height: 1.2;
+      }
+
+      .app-icon {
+        width: 36px;
+        height: 36px;
+        flex-shrink: 0;
       }
 
       .toolbar {
@@ -410,7 +425,7 @@
   <body>
     <main class="app-shell">
       <header class="topbar">
-        <h1>網羅的議論法</h1>
+        <h1><img class="app-icon" src="./icon.svg" alt="" width="36" height="36" />網羅的議論法</h1>
         <div class="toolbar" aria-label="ファイル操作">
           <label class="switch-label">
             <input id="shrinkColumns" type="checkbox" />
@@ -1150,5 +1165,6 @@
 
       render();
     </script>
+    <script src="./pwa.js"></script>
   </body>
 </html>

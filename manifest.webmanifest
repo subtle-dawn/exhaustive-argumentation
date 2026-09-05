@@ -1,0 +1,16 @@
+{
+  "id": "./",
+  "name": "網羅的議論法",
+  "short_name": "網羅的議論法",
+  "description": "意見と反論を表に整理して、すべての枝を検討する議論アプリ",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f1e8",
+  "theme_color": "#f4f1e8",
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
