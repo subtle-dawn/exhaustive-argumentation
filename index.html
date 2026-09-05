@@ -419,6 +419,7 @@
           <button type="button" id="openHelp">ヘルプ</button>
           <button type="button" id="importJson">インポート</button>
           <button type="button" id="exportJson">エクスポート</button>
+          <button type="button" id="downloadPdf">ダウンロード</button>
           <button type="button" id="resetBoard" class="danger-button">初期化</button>
           <input id="fileInput" class="file-input" type="file" accept="application/json,.json" />
         </div>
@@ -604,6 +605,15 @@
         URL.revokeObjectURL(url);
       }
 
+      function downloadBlob(filename, blob) {
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = filename;
+        anchor.click();
+        URL.revokeObjectURL(url);
+      }
+
       function addChild(id) {
         const found = findNode(board.roots, id);
         if (!found) return;
@@ -651,6 +661,247 @@
       function exportJson() {
         const filename = board.topic ? `${board.topic}.json` : "mourateki-giron.json";
         download(filename, JSON.stringify(board, null, 2), "application/json;charset=utf-8");
+      }
+
+      function wrapCanvasText(ctx, text, maxWidth) {
+        const source = String(text || "");
+        const lines = [];
+        const paragraphs = source.split(/\n/);
+
+        paragraphs.forEach((paragraph) => {
+          let line = "";
+          for (const char of paragraph) {
+            const testLine = line + char;
+            if (line && ctx.measureText(testLine).width > maxWidth) {
+              lines.push(line);
+              line = char;
+            } else {
+              line = testLine;
+            }
+          }
+          lines.push(line || "");
+        });
+
+        return lines;
+      }
+
+      function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight, maxY) {
+        const lines = wrapCanvasText(ctx, text, maxWidth);
+        for (const line of lines) {
+          if (maxY && y > maxY) return y;
+          ctx.fillText(line, x, y);
+          y += lineHeight;
+        }
+        return y;
+      }
+
+      function renderOpinionPage(root, pageNumber, pageCount) {
+        const canvas = document.createElement("canvas");
+        canvas.width = 1754;
+        canvas.height = 1240;
+        const ctx = canvas.getContext("2d");
+        const margin = 44;
+        const tableTop = 172;
+        const headerHeight = 42;
+        const tableWidth = canvas.width - margin * 2;
+        const tableHeight = canvas.height - tableTop - margin;
+        const rows = leafPaths([root]);
+        const maxDepth = Math.max(1, ...rows.map((row) => row.length));
+        const columnWidth = tableWidth / maxDepth;
+        let textSize = maxDepth > 10 ? 13 : maxDepth > 8 ? 14 : 16;
+        let lineHeight = Math.round(textSize * 1.45);
+
+        const measureCellHeight = (text, width) => {
+          ctx.font = `400 ${textSize}px 'Yu Gothic UI', Meiryo, sans-serif`;
+          const lines = wrapCanvasText(ctx, text || "", width - 16);
+          return Math.max(42, lines.length * lineHeight + 18);
+        };
+
+        const rowHeights = Array.from({ length: rows.length }, () => 54);
+        rows.forEach((row, rowIndex) => {
+          Array.from({ length: maxDepth }, (_, depth) => {
+            const node = row[depth];
+            const span = rowSpanAt(rows, rowIndex, depth);
+            if (!node || span === 0) return;
+
+            const requiredHeight = measureCellHeight(node.text, columnWidth);
+            const currentHeight = rowHeights
+              .slice(rowIndex, rowIndex + span)
+              .reduce((sum, height) => sum + height, 0);
+
+            if (requiredHeight > currentHeight) {
+              const extra = (requiredHeight - currentHeight) / span;
+              for (let i = rowIndex; i < rowIndex + span; i += 1) {
+                rowHeights[i] += extra;
+              }
+            }
+          });
+        });
+
+        const naturalTableHeight = headerHeight + rowHeights.reduce((sum, height) => sum + height, 0);
+        const scale = Math.min(1, tableHeight / naturalTableHeight);
+        if (scale < 0.92) {
+          textSize = Math.max(10, Math.floor(textSize * scale));
+          lineHeight = Math.round(textSize * 1.45);
+          rowHeights.forEach((height, index) => {
+            rowHeights[index] = Math.max(28, height * scale);
+          });
+        }
+
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#14211a";
+        ctx.font = "700 32px 'Yu Gothic UI', Meiryo, sans-serif";
+        ctx.fillText("網羅的議論法", margin, 56);
+
+        ctx.font = "400 21px 'Yu Gothic UI', Meiryo, sans-serif";
+        ctx.fillStyle = "#526154";
+        ctx.textAlign = "right";
+        ctx.fillText(`${pageNumber} / ${pageCount}`, canvas.width - margin, 56);
+        ctx.textAlign = "left";
+
+        ctx.fillStyle = "#17231c";
+        ctx.font = "700 18px 'Yu Gothic UI', Meiryo, sans-serif";
+        ctx.fillText("議題", margin, 98);
+        ctx.font = "400 22px 'Yu Gothic UI', Meiryo, sans-serif";
+        drawWrappedText(ctx, board.topic || "（未入力）", margin + 56, 98, tableWidth - 56, 30, 150);
+
+        function drawCell(x, y, width, height, fill, text, isHeader = false) {
+          ctx.fillStyle = fill;
+          ctx.fillRect(x, y, width, height);
+          ctx.strokeStyle = "#1f2a22";
+          ctx.lineWidth = 1;
+          ctx.strokeRect(x, y, width, height);
+
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(x + 6, y + 6, width - 12, height - 12);
+          ctx.clip();
+          ctx.fillStyle = "#07110b";
+          ctx.font = `${isHeader ? "700" : "400"} ${isHeader ? 17 : textSize}px 'Yu Gothic UI', Meiryo, sans-serif`;
+          drawWrappedText(
+            ctx,
+            text,
+            x + 8,
+            y + (isHeader ? 27 : textSize + 10),
+            width - 16,
+            isHeader ? 22 : Math.round(textSize * 1.45),
+            null
+          );
+          ctx.restore();
+        }
+
+        Array.from({ length: maxDepth }, (_, depth) => {
+          drawCell(
+            margin + depth * columnWidth,
+            tableTop,
+            columnWidth,
+            headerHeight,
+            "#edf0ea",
+            depth === 0 ? "意見" : `${depth}巡目`,
+            true
+          );
+        });
+
+        rows.forEach((row, rowIndex) => {
+          const rowY = tableTop + headerHeight + rowHeights.slice(0, rowIndex).reduce((sum, height) => sum + height, 0);
+          Array.from({ length: maxDepth }, (_, depth) => {
+            const span = rowSpanAt(rows, rowIndex, depth);
+            const node = row[depth];
+            const x = margin + depth * columnWidth;
+
+            if (span === 0 && node) return;
+
+            if (!node) {
+              drawCell(x, rowY, columnWidth, rowHeights[rowIndex], "#ffffff", "");
+              return;
+            }
+
+            const height = rowHeights.slice(rowIndex, rowIndex + span).reduce((sum, item) => sum + item, 0);
+            const fill = depth === 0 || depth % 2 === 0 ? "#d9f0cf" : "#ffd0d3";
+            drawCell(x, rowY, columnWidth, height, fill, node.text || "");
+          });
+        });
+
+        return canvas.toDataURL("image/jpeg", 0.92);
+      }
+
+      function binaryStringToBytes(binary) {
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i += 1) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        return bytes;
+      }
+
+      function buildPdfFromImages(imageDataUrls) {
+        const encoder = new TextEncoder();
+        const chunks = [];
+        const offsets = [0];
+        let length = 0;
+        const addText = (text) => {
+          const bytes = encoder.encode(text);
+          chunks.push(bytes);
+          length += bytes.length;
+        };
+        const addBytes = (bytes) => {
+          chunks.push(bytes);
+          length += bytes.length;
+        };
+        const startObject = (id) => {
+          offsets[id] = length;
+          addText(`${id} 0 obj\n`);
+        };
+
+        addText("%PDF-1.4\n");
+        startObject(1);
+        addText("<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        startObject(2);
+        const kids = imageDataUrls.map((_, index) => `${3 + index * 3} 0 R`).join(" ");
+        addText(`<< /Type /Pages /Count ${imageDataUrls.length} /Kids [ ${kids} ] >>\nendobj\n`);
+
+        imageDataUrls.forEach((dataUrl, index) => {
+          const pageId = 3 + index * 3;
+          const contentId = pageId + 1;
+          const imageId = pageId + 2;
+          const imageName = `Im${index + 1}`;
+          const binary = atob(dataUrl.split(",")[1]);
+          const imageBytes = binaryStringToBytes(binary);
+          const content = `q\n841.89 0 0 595.28 0 0 cm\n/${imageName} Do\nQ\n`;
+
+          startObject(pageId);
+          addText(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 841.89 595.28] /Resources << /XObject << /${imageName} ${imageId} 0 R >> >> /Contents ${contentId} 0 R >>\nendobj\n`);
+          startObject(contentId);
+          addText(`<< /Length ${content.length} >>\nstream\n${content}endstream\nendobj\n`);
+          startObject(imageId);
+          addText(`<< /Type /XObject /Subtype /Image /Width 1754 /Height 1240 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${imageBytes.length} >>\nstream\n`);
+          addBytes(imageBytes);
+          addText("\nendstream\nendobj\n");
+        });
+
+        const xrefOffset = length;
+        addText(`xref\n0 ${offsets.length}\n0000000000 65535 f \n`);
+        for (let id = 1; id < offsets.length; id += 1) {
+          addText(`${String(offsets[id]).padStart(10, "0")} 00000 n \n`);
+        }
+        addText(`trailer\n<< /Size ${offsets.length} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`);
+
+        const pdfBytes = new Uint8Array(length);
+        let position = 0;
+        chunks.forEach((chunk) => {
+          pdfBytes.set(chunk, position);
+          position += chunk.length;
+        });
+
+        return new Blob([pdfBytes], { type: "application/pdf" });
+      }
+
+      function downloadPdf() {
+        const roots = board.roots.length ? board.roots : [makeNode("")];
+        const pages = roots.map((root, index) => renderOpinionPage(root, index + 1, roots.length));
+        const pdf = buildPdfFromImages(pages);
+        const filename = board.topic ? `${board.topic}.pdf` : "mourateki-giron.pdf";
+        downloadBlob(filename, pdf);
       }
 
       function importJson(file) {
@@ -865,6 +1116,7 @@
       });
       document.getElementById("importJson").addEventListener("click", () => fileInput.click());
       document.getElementById("exportJson").addEventListener("click", exportJson);
+      document.getElementById("downloadPdf").addEventListener("click", downloadPdf);
       shrinkColumnsInput.addEventListener("change", (event) => {
         shrinkColumns = event.target.checked;
         localStorage.setItem(SHRINK_COLUMNS_KEY, String(shrinkColumns));
